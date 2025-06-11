@@ -18,7 +18,10 @@ void ssd1306_TestCircle(void);
 void ssd1306_TestArc(void);
 void ssd1306_TestPolyline(void);
 void ssd1306_TestDrawBitmap(void);
+
+// USER CODE HERE
 void ssd1306_TestBlackJack(void);
+// USER CODE END
 
 _END_STD_C
 

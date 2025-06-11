@@ -423,13 +423,6 @@ void ssd1306_TestDrawBitmap()
     ssd1306_UpdateScreen();
 }
 
-void ssd1306_TestBlackJack()
-{
-	ssd1306_Fill(Black);
-	ssd1306_DrawBitmap(0,0,blackjack_128x64,128,64,White);
-	ssd1306_UpdateScreen();
-}
-
 void ssd1306_TestAll() {
     ssd1306_Init();
 
@@ -465,3 +458,11 @@ void ssd1306_TestAll() {
     HAL_Delay(3000);
 }
 
+// USER CODE HERE
+void ssd1306_TestBlackJack()
+{
+	ssd1306_Fill(Black);
+	ssd1306_DrawBitmap(0,0,blackjack_128x64,128,64,White);
+	ssd1306_UpdateScreen();
+}
+// USER CODE END

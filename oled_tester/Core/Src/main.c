@@ -17,10 +17,12 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <blackjack.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include "ssd1306.h"
 /* USER CODE END Includes */
 
@@ -45,7 +47,105 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+bool loop_b = false;
 
+volatile bool b1_pressed = false;
+volatile bool b2_pressed = false;
+volatile bool b3_pressed = false;
+volatile bool b4_pressed = false;
+
+// 'King', 3x5px
+const unsigned char epd_bitmap_King [] = {
+	0xa0, 0xa0, 0xa0, 0xc0, 0xa0
+};
+// 'Queen', 3x5px
+const unsigned char epd_bitmap_Queen [] = {
+	0xe0, 0xa0, 0xa0, 0xe0, 0x40
+};
+// 'Jack', 3x5px
+const unsigned char epd_bitmap_Jack [] = {
+	0xe0, 0x40, 0x40, 0x40, 0xc0
+};
+// 'Ten', 3x5px
+const unsigned char epd_bitmap_Ten [] = {
+	0xe0, 0x40, 0x40, 0x40, 0x40
+};
+// 'Nine', 3x5px
+const unsigned char epd_bitmap_Nine [] = {
+	0xe0, 0xa0, 0xe0, 0x20, 0x20
+};
+// 'Eight', 3x5px
+const unsigned char epd_bitmap_Eight [] = {
+	0xe0, 0xa0, 0xe0, 0xa0, 0xe0
+};
+// 'Seven', 3x5px
+const unsigned char epd_bitmap_Seven [] = {
+	0xe0, 0x20, 0x20, 0x40, 0x80
+};
+// 'Six', 3x5px
+const unsigned char epd_bitmap_Six [] = {
+	0xe0, 0x80, 0xe0, 0xa0, 0xe0
+};
+// 'Five', 3x5px
+const unsigned char epd_bitmap_Five [] = {
+	0xe0, 0x80, 0xc0, 0x20, 0xc0
+};
+// 'Four', 3x5px
+const unsigned char epd_bitmap_Four [] = {
+	0x80, 0xa0, 0xa0, 0xe0, 0x20
+};
+// 'Three', 3x5px
+const unsigned char epd_bitmap_Three [] = {
+	0xe0, 0x20, 0x60, 0x20, 0xc0
+};
+// 'Two', 3x5px
+const unsigned char epd_bitmap_Two [] = {
+	0x40, 0xa0, 0x20, 0x40, 0xe0
+};
+// 'Ace', 3x5px
+const unsigned char epd_bitmap_Ace [] = {
+	0x40, 0xa0, 0xa0, 0xe0, 0xa0
+};
+// 'Spades', 5x5px
+const unsigned char epd_bitmap_Spades [] = {
+	0x20, 0x70, 0xf8, 0xf8, 0x20
+};
+// 'Clubs', 5x5px
+const unsigned char epd_bitmap_Clubs [] = {
+	0x70, 0xf8, 0xf8, 0x20, 0x70
+};
+// 'Hearts', 5x5px
+const unsigned char epd_bitmap_Hearts [] = {
+	0x50, 0xf8, 0xf8, 0x70, 0x20
+};
+// 'Diamonds', 5x5px
+const unsigned char epd_bitmap_Diamonds [] = {
+	0x20, 0x70, 0x70, 0x70, 0x20
+};
+
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 544)
+const unsigned char* card_num_bitmaps[13] = {
+	epd_bitmap_Ace,
+	epd_bitmap_Two,
+	epd_bitmap_Three,
+	epd_bitmap_Four,
+	epd_bitmap_Five,
+	epd_bitmap_Six,
+	epd_bitmap_Seven,
+	epd_bitmap_Eight,
+	epd_bitmap_Nine,
+	epd_bitmap_Ten,
+	epd_bitmap_Jack,
+	epd_bitmap_Queen,
+	epd_bitmap_King
+};
+
+const unsigned char* card_suit_bitmpas[4] = {
+	epd_bitmap_Clubs,
+	epd_bitmap_Diamonds,
+	epd_bitmap_Hearts,
+	epd_bitmap_Spades
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,7 +201,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ssd1306_TestBlackJack();
+	  ssd1306_Fill(Black);
+	  uint8_t x_loc = 3;
+	  for (uint8_t i = 0; i < 13; i++) {
+		  ssd1306_DrawBitmap(x_loc, 3, card_num_bitmaps[i], 3, 5, White);
+		  x_loc += 5;
+	  }
+	  ssd1306_UpdateScreen();
+	  /*loop_b = true;
+	  while (loop_b) {
+		  if (b1_pressed) {
+			  start_play();
+		  }
+	  }*/
 
     /* USER CODE END WHILE */
 
@@ -268,15 +380,52 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_3_GPIO_Port, LED_3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, LED_7_Pin|LED_8_Pin|LED_GREEN_Pin|LED_5_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, LED_9_Pin|LED_6_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, LED_1_Pin|LED_2_Pin|LED_4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : BUTTON_4_Pin BUTTON_1_Pin BUTTON_2_Pin */
+  GPIO_InitStruct.Pin = BUTTON_4_Pin|BUTTON_1_Pin|BUTTON_2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BUTTON_3_Pin */
+  GPIO_InitStruct.Pin = BUTTON_3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_3_Pin */
+  GPIO_InitStruct.Pin = LED_3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED_7_Pin LED_8_Pin LED_5_Pin */
+  GPIO_InitStruct.Pin = LED_7_Pin|LED_8_Pin|LED_5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED_GREEN_Pin */
   GPIO_InitStruct.Pin = LED_GREEN_Pin;
@@ -285,13 +434,77 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : LED_9_Pin LED_6_Pin */
+  GPIO_InitStruct.Pin = LED_9_Pin|LED_6_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED_1_Pin LED_2_Pin LED_4_Pin */
+  GPIO_InitStruct.Pin = LED_1_Pin|LED_2_Pin|LED_4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void homescreen() {
+	//init_homescreen();
+	bool loop_c = true;
 
+
+	while (loop_c) {
+		if (b1_pressed) {
+
+		}
+	}
+}
+
+/*void start_play() {
+	// initialize
+	deal_ani();
+	bool loop_c = true;
+
+	while (loop_c) {
+		__WFI();
+		if (b1_pressed) loop_c = false;
+	}
+
+	return;
+}*/
+
+void deal_ani() {
+	// alr this is gonna be tough
+
+	// delay a bit on an empty table with a deck of cards.
+	// then, deal 1 by 1 with cool animation type shit
+
+	// then thats it lol
+}
+
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == BUTTON_1_Pin) {
+		b1_pressed = true;
+	}
+
+	if (GPIO_Pin == BUTTON_2_Pin) {
+		b2_pressed = true;
+	}
+
+	if (GPIO_Pin == BUTTON_3_Pin) {
+		b3_pressed = true;
+	}
+
+	if (GPIO_Pin == BUTTON_4_Pin) {
+		b4_pressed = true;
+	}
+}
 /* USER CODE END 4 */
 
 /**
