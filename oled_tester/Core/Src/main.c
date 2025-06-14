@@ -48,104 +48,6 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 bool loop_b = false;
-
-volatile bool b1_pressed = false;
-volatile bool b2_pressed = false;
-volatile bool b3_pressed = false;
-volatile bool b4_pressed = false;
-
-// 'King', 3x5px
-const unsigned char epd_bitmap_King [] = {
-	0xa0, 0xa0, 0xa0, 0xc0, 0xa0
-};
-// 'Queen', 3x5px
-const unsigned char epd_bitmap_Queen [] = {
-	0xe0, 0xa0, 0xa0, 0xe0, 0x40
-};
-// 'Jack', 3x5px
-const unsigned char epd_bitmap_Jack [] = {
-	0xe0, 0x40, 0x40, 0x40, 0xc0
-};
-// 'Ten', 3x5px
-const unsigned char epd_bitmap_Ten [] = {
-	0xe0, 0x40, 0x40, 0x40, 0x40
-};
-// 'Nine', 3x5px
-const unsigned char epd_bitmap_Nine [] = {
-	0xe0, 0xa0, 0xe0, 0x20, 0x20
-};
-// 'Eight', 3x5px
-const unsigned char epd_bitmap_Eight [] = {
-	0xe0, 0xa0, 0xe0, 0xa0, 0xe0
-};
-// 'Seven', 3x5px
-const unsigned char epd_bitmap_Seven [] = {
-	0xe0, 0x20, 0x20, 0x40, 0x80
-};
-// 'Six', 3x5px
-const unsigned char epd_bitmap_Six [] = {
-	0xe0, 0x80, 0xe0, 0xa0, 0xe0
-};
-// 'Five', 3x5px
-const unsigned char epd_bitmap_Five [] = {
-	0xe0, 0x80, 0xc0, 0x20, 0xc0
-};
-// 'Four', 3x5px
-const unsigned char epd_bitmap_Four [] = {
-	0x80, 0xa0, 0xa0, 0xe0, 0x20
-};
-// 'Three', 3x5px
-const unsigned char epd_bitmap_Three [] = {
-	0xe0, 0x20, 0x60, 0x20, 0xc0
-};
-// 'Two', 3x5px
-const unsigned char epd_bitmap_Two [] = {
-	0x40, 0xa0, 0x20, 0x40, 0xe0
-};
-// 'Ace', 3x5px
-const unsigned char epd_bitmap_Ace [] = {
-	0x40, 0xa0, 0xa0, 0xe0, 0xa0
-};
-// 'Spades', 5x5px
-const unsigned char epd_bitmap_Spades [] = {
-	0x20, 0x70, 0xf8, 0xf8, 0x20
-};
-// 'Clubs', 5x5px
-const unsigned char epd_bitmap_Clubs [] = {
-	0x70, 0xf8, 0xf8, 0x20, 0x70
-};
-// 'Hearts', 5x5px
-const unsigned char epd_bitmap_Hearts [] = {
-	0x50, 0xf8, 0xf8, 0x70, 0x20
-};
-// 'Diamonds', 5x5px
-const unsigned char epd_bitmap_Diamonds [] = {
-	0x20, 0x70, 0x70, 0x70, 0x20
-};
-
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 544)
-const unsigned char* card_num_bitmaps[13] = {
-	epd_bitmap_Ace,
-	epd_bitmap_Two,
-	epd_bitmap_Three,
-	epd_bitmap_Four,
-	epd_bitmap_Five,
-	epd_bitmap_Six,
-	epd_bitmap_Seven,
-	epd_bitmap_Eight,
-	epd_bitmap_Nine,
-	epd_bitmap_Ten,
-	epd_bitmap_Jack,
-	epd_bitmap_Queen,
-	epd_bitmap_King
-};
-
-const unsigned char* card_suit_bitmpas[4] = {
-	epd_bitmap_Clubs,
-	epd_bitmap_Diamonds,
-	epd_bitmap_Hearts,
-	epd_bitmap_Spades
-};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -201,20 +103,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  ssd1306_Fill(Black);
-	  uint8_t x_loc = 3;
-	  for (uint8_t i = 0; i < 13; i++) {
-		  ssd1306_DrawBitmap(x_loc, 3, card_num_bitmaps[i], 3, 5, White);
-		  x_loc += 5;
-	  }
-	  ssd1306_UpdateScreen();
-	  /*loop_b = true;
-	  while (loop_b) {
-		  if (b1_pressed) {
-			  start_play();
-		  }
-	  }*/
-
+	  bjack_home();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

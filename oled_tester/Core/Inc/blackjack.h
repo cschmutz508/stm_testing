@@ -5,7 +5,23 @@
 #ifndef _BLACKJACK_H
 #define _BLACKJACK_H
 
+// Includes
+#include "main.h"
+#include "ssd1306.h"
+
 #include <stdint.h>
+#include <stdbool.h>
+
+// Function declarations
+void bjack_home(void);
+void bjack_init(void);
+void bjack_update_menu(uint8_t select);
+
+// Vars
+extern volatile bool b1_pressed;
+extern volatile bool b2_pressed;
+extern volatile bool b3_pressed;
+extern volatile bool b4_pressed;
 
 typedef enum {
 	CARD_SUIT_CLUBS = 0x00,
