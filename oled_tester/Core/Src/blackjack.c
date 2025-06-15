@@ -260,6 +260,13 @@ void bjack_init() {
 
 	ssd1306_UpdateScreen();
 	HAL_Delay(3000);
+
+	ssd1306_Fill(Black);
+	ssd1306_DrawBitmap(0, 0, BMP_home_screen, 128, 64, White);
+	uint8_t select = 0;
+
+	bjack_update_menu(select);
+	ssd1306_UpdateScreen();
 }
 
 void bjack_home() {
@@ -292,9 +299,9 @@ void bjack_home() {
 		if (b3_pressed) {
 			b3_pressed = false;
 			switch(select) {
-			case 0: bjack_init();
-			case 1: ;
-			case 2: ;
+			case 0: bjack_init(); break;
+			case 1: break;
+			case 2: break;
 			}
 		}
 	}
@@ -306,9 +313,9 @@ void bjack_update_menu(uint8_t select) {
 	ssd1306_FillRectangle(42, 53, 43, 54, Black);
 
 	switch (select) {
-	case 1: ssd1306_FillRectangle(42, 37, 43, 38, White); break;
-	case 2: ssd1306_FillRectangle(42, 45, 43, 46, White); break;
-	case 3: ssd1306_FillRectangle(42, 53, 43, 54, White); break;
+	case 0: ssd1306_FillRectangle(42, 37, 43, 38, White); break;
+	case 1: ssd1306_FillRectangle(42, 45, 43, 46, White); break;
+	case 2: ssd1306_FillRectangle(42, 53, 43, 54, White); break;
 	}
 
 	ssd1306_UpdateScreen();
