@@ -2,13 +2,17 @@
  * Blackjack code
  */
 
+// Includes
 #include "blackjack.h"
 
-volatile bool b1_pressed = false;
-volatile bool b2_pressed = false;
-volatile bool b3_pressed = false;
-volatile bool b4_pressed = false;
+// Variables
+volatile uint8_t bpressed = 0;
+volatile bool frame_ready = false;
+BJACK_CARD deck[DECK_SIZE];
+BJACK_GAME_STATE game_state = {0};
+bool srand_done = false;
 
+// Bitmaps
 const unsigned char BMP_home_screen [] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xff,
@@ -77,96 +81,96 @@ const unsigned char BMP_home_screen [] = {
 };
 
 // 'King', 3x5px
-const unsigned char epd_bitmap_King [] = {
+const unsigned char BMP_King [] = {
 	0xa0, 0xa0, 0xa0, 0xc0, 0xa0
 };
 // 'Queen', 3x5px
-const unsigned char epd_bitmap_Queen [] = {
+const unsigned char BMP_Queen [] = {
 	0xe0, 0xa0, 0xa0, 0xe0, 0x40
 };
 // 'Jack', 3x5px
-const unsigned char epd_bitmap_Jack [] = {
+const unsigned char BMP_Jack [] = {
 	0xe0, 0x40, 0x40, 0x40, 0xc0
 };
 // 'Ten', 3x5px
-const unsigned char epd_bitmap_Ten [] = {
+const unsigned char BMP_Ten [] = {
 	0xe0, 0x40, 0x40, 0x40, 0x40
 };
 // 'Nine', 3x5px
-const unsigned char epd_bitmap_Nine [] = {
+const unsigned char BMP_Nine [] = {
 	0xe0, 0xa0, 0xe0, 0x20, 0x20
 };
 // 'Eight', 3x5px
-const unsigned char epd_bitmap_Eight [] = {
+const unsigned char BMP_Eight [] = {
 	0xe0, 0xa0, 0xe0, 0xa0, 0xe0
 };
 // 'Seven', 3x5px
-const unsigned char epd_bitmap_Seven [] = {
+const unsigned char BMP_Seven [] = {
 	0xe0, 0x20, 0x20, 0x40, 0x80
 };
 // 'Six', 3x5px
-const unsigned char epd_bitmap_Six [] = {
+const unsigned char BMP_Six [] = {
 	0xe0, 0x80, 0xe0, 0xa0, 0xe0
 };
 // 'Five', 3x5px
-const unsigned char epd_bitmap_Five [] = {
+const unsigned char BMP_Five [] = {
 	0xe0, 0x80, 0xc0, 0x20, 0xc0
 };
 // 'Four', 3x5px
-const unsigned char epd_bitmap_Four [] = {
+const unsigned char BMP_Four [] = {
 	0x80, 0xa0, 0xa0, 0xe0, 0x20
 };
 // 'Three', 3x5px
-const unsigned char epd_bitmap_Three [] = {
+const unsigned char BMP_Three [] = {
 	0xe0, 0x20, 0x60, 0x20, 0xc0
 };
 // 'Two', 3x5px
-const unsigned char epd_bitmap_Two [] = {
+const unsigned char BMP_Two [] = {
 	0x40, 0xa0, 0x20, 0x40, 0xe0
 };
 // 'Ace', 3x5px
-const unsigned char epd_bitmap_Ace [] = {
+const unsigned char BMP_Ace [] = {
 	0x40, 0xa0, 0xa0, 0xe0, 0xa0
 };
 // 'Spades', 5x5px
-const unsigned char epd_bitmap_Spades [] = {
+const unsigned char BMP_Spades [] = {
 	0x20, 0x70, 0xf8, 0xf8, 0x20
 };
 // 'Clubs', 5x5px
-const unsigned char epd_bitmap_Clubs [] = {
+const unsigned char BMP_Clubs [] = {
 	0x70, 0xf8, 0xf8, 0x20, 0x70
 };
 // 'Hearts', 5x5p
-const unsigned char epd_bitmap_Hearts [] = {
+const unsigned char BMP_Hearts [] = {
 	0x50, 0xf8, 0xf8, 0x70, 0x20
 };
 // 'Diamonds', 5x5px
-const unsigned char epd_bitmap_Diamonds [] = {
+const unsigned char BMP_Diamonds [] = {
 	0x20, 0x70, 0x70, 0x70, 0x20
 };
 
 // Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 544)
 const unsigned char* BMP_card_num[13] = {
-	epd_bitmap_Ace,
-	epd_bitmap_Two,
-	epd_bitmap_Three,
-	epd_bitmap_Four,
-	epd_bitmap_Five,
-	epd_bitmap_Six,
-	epd_bitmap_Seven,
-	epd_bitmap_Eight,
-	epd_bitmap_Nine,
-	epd_bitmap_Ten,
-	epd_bitmap_Jack,
-	epd_bitmap_Queen,
-	epd_bitmap_King
+	BMP_Ace,
+	BMP_Two,
+	BMP_Three,
+	BMP_Four,
+	BMP_Five,
+	BMP_Six,
+	BMP_Seven,
+	BMP_Eight,
+	BMP_Nine,
+	BMP_Ten,
+	BMP_Jack,
+	BMP_Queen,
+	BMP_King
 };
 
 const unsigned char* BMP_card_suit[4] = {
-	epd_bitmap_Clubs,
-	epd_bitmap_Diamonds,
-	epd_bitmap_Hearts,
-	epd_bitmap_Spades
+	BMP_Clubs,
+	BMP_Diamonds,
+	BMP_Hearts,
+	BMP_Spades
 };
 
 // 'empty_card', 9x15px
@@ -244,29 +248,271 @@ const unsigned char BMP_empty_table [] = {
 };
 
 // zzzzzzzzzzz
-void ssd1306_CardFlip()
-{
-	ssd1306_Fill(Black);
-	HAL_Delay(1000);
+void bjack_init() {
+	bool play_again = true;
 
+	while (play_again) {
+		ssd1306_Fill(Black);
+		ssd1306_DrawBitmap(0, 0, BMP_empty_table, 128, 64, White);
+
+		while (!frame_ready) {
+			__WFI();
+		}
+		frame_ready = false;
+		ssd1306_UpdateScreen();
+
+		bjack_init_deck();
+		game_state.deck_loc = 0;
+		game_state.seat_turn = BJACK_SEAT_PLAYER;
+
+		// 1. shuffle
+		bjack_shuffle_deck();
+
+		// 2. deal
+		BJACK_HAND player_hand = {0};
+		BJACK_HAND dealer_hand = {0};
+		bjack_deal_new_hand(&player_hand, &dealer_hand);
+		bjack_wait(16);
+
+		// 2a. determine any blackjacks
+		BJACK_BLACKJACK bjack_case = bjack_is_blackjack(&player_hand, &dealer_hand);
+		if (bjack_case == PLAYER_BLACKJACK) {
+			game_state.seat_turn = BJACK_SEAT_DONE;
+			game_state.result.winner = PLAYER;
+			game_state.result.how = BLACKJACK;
+		} else if (bjack_case == DEALER_BLACKJACK) {
+			game_state.seat_turn = BJACK_SEAT_DONE;
+			game_state.result.winner = DEALER;
+			game_state.result.how = BLACKJACK;
+		} else if (bjack_case == BOTH_BLACKJACK) {
+			game_state.seat_turn = BJACK_SEAT_DONE;
+			game_state.result.winner = PUSH;
+			game_state.result.how = BLACKJACK;
+		}
+
+		// 3. await action
+		uint8_t select = 0;
+		bjack_update_choice(select);
+		while (game_state.seat_turn == BJACK_SEAT_PLAYER) {
+			__WFI();
+			if (bpressed == 1) {
+				bpressed = 0;
+				if (!(select == 0)) {
+					select--;
+					bjack_update_choice(select);
+				}
+			}
+			if (bpressed == 2) {
+				bpressed = 0;
+				if (!(select == 3)) {
+					select++;
+					bjack_update_choice(select);
+				}
+			}
+			if (bpressed == 3) {
+				bpressed = 0;
+				bjack_game_update(&player_hand, &dealer_hand, select);
+			}
+			if (bpressed == 4) {
+				bpressed = 0;
+				return;
+			}
+
+			// Evaluate result of action
+			uint8_t hand_worth = bjack_determine_worth(player_hand);
+
+			if (hand_worth == 21) {
+				game_state.seat_turn = BJACK_SEAT_DEALER;
+			}
+			if (hand_worth > 21) {
+				game_state.seat_turn = BJACK_SEAT_DONE;
+				game_state.result.winner = DEALER;
+				game_state.result.how = BUST;
+			}
+		}
+
+		// Show dealer's other card
+		bjack_Screen_new_card(DEALER_X, DEALER_Y, dealer_hand.hand[0]);
+		bjack_Screen_new_card(DEALER_X + 6, DEALER_Y, dealer_hand.hand[1]);
+		bjack_wait(4);
+		ssd1306_UpdateScreen();
+
+		while (game_state.seat_turn == BJACK_SEAT_DEALER) {
+			uint8_t dealer_worth = bjack_determine_worth(dealer_hand);
+
+			if (dealer_worth > 21) {
+				game_state.seat_turn = BJACK_SEAT_DONE;
+				game_state.result.winner = PLAYER;
+				game_state.result.how = BUST;
+			} else if (dealer_worth == 21) {
+				game_state.seat_turn = BJACK_SEAT_DONE;
+				uint8_t player_worth = bjack_determine_worth(player_hand);
+				if (player_worth > dealer_worth) {
+					game_state.result.winner = PLAYER;
+					game_state.result.how = HIGH_COUNT;
+				} else if (dealer_worth > player_worth) {
+					game_state.result.winner = DEALER;
+					game_state.result.how = HIGH_COUNT;
+				} else {
+					game_state.result.winner = PUSH;
+				}
+			} else if (dealer_worth >= 17) {
+				game_state.seat_turn = BJACK_SEAT_DONE;
+			} else {
+				bjack_game_update(&player_hand, &dealer_hand, 0);
+				bjack_wait(16);
+			}
+		}
+
+		// determine winner
+		// should turn into an "end game message" function maybe?
+		if (game_state.result.winner == PUSH) {
+			ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+			ssd1306_SetCursor(74, DEALER_Y);
+			ssd1306_WriteString("Push", Font_6x8, White);
+			bjack_wait(1);
+			ssd1306_UpdateScreen();
+		} else if (game_state.result.winner == PLAYER) {
+			if (game_state.result.how == BLACKJACK) {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Win!", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			} else if (game_state.result.how == BUST) {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Bust!", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			} else {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Win!", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			}
+		} else {
+			if (game_state.result.how == BLACKJACK) {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Uh oh", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			} else if (game_state.result.how == BUST) {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Bust", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			} else {
+				ssd1306_FillRectangle(72, DEALER_Y, 120, DEALER_Y + 14, Black);
+				ssd1306_SetCursor(74, DEALER_Y);
+				ssd1306_WriteString("Lose", Font_6x8, White);
+				bjack_wait(1);
+				ssd1306_UpdateScreen();
+			}
+		}
+
+		// play again?
+		select = 0;
+		bjack_update_choice(select);
+
+		bool flag = true;
+		while (flag) {
+			__WFI();
+			if (bpressed == 1) {
+				bpressed = 0;
+				if (!(select == 0)) {
+					select--;
+					bjack_update_choice(select);
+				}
+			}
+			if (bpressed == 2) {
+				bpressed = 0;
+				if (!(select == 1)) {
+					select++;
+					bjack_update_choice(select);
+				}
+			}
+			if (bpressed == 3) {
+				bpressed = 0;
+				if (select == 0) {
+					flag = false;
+				}
+				if (select == 1){
+					play_again = false;
+					flag = false;
+				}
+			}
+		}
+	}
 }
 
-void bjack_init() {
-	ssd1306_Fill(Black);
-	ssd1306_DrawBitmap(0, 0, BMP_empty_table, 128, 64, White);
-	ssd1306_DrawBitmap(13, 13, BMP_empty_card, 9, 15, White);
-	ssd1306_DrawBitmap(15, 15, BMP_card_num[0], 3, 5, White);
-	ssd1306_DrawBitmap(15, 22, BMP_card_suit[3], 5, 5, White);
+uint8_t bjack_determine_worth(BJACK_HAND hand) {
+	uint8_t aces = 0;
+	uint8_t worth = 0;
 
-	ssd1306_UpdateScreen();
-	HAL_Delay(3000);
+	for (uint8_t i = 0; i < hand.count; i++) {
+		switch (hand.hand[i].num) {
+		case 0: worth += 1; aces++; break;
+		case 1: worth += 2; break;
+		case 2: worth += 3; break;
+		case 3: worth += 4; break;
+		case 4: worth += 5; break;
+		case 5: worth += 6; break;
+		case 6: worth += 7; break;
+		case 7: worth += 8; break;
+		case 8: worth += 9; break;
+		case 9: worth += 10; break;
+		case 10: ;
+		case 11: ;
+		case 12: worth += 10; break;
+		}
+	}
 
-	ssd1306_Fill(Black);
-	ssd1306_DrawBitmap(0, 0, BMP_home_screen, 128, 64, White);
-	uint8_t select = 0;
+	for (uint8_t i = 0; i < aces; i++) {
+		if (worth + 10 <= 21) {
+			worth += 10;
+		}
+	}
 
-	bjack_update_menu(select);
-	ssd1306_UpdateScreen();
+	return worth;
+}
+
+void bjack_game_update(BJACK_HAND *player_hand, BJACK_HAND *dealer_hand, uint8_t select) {
+	if (game_state.seat_turn == BJACK_SEAT_PLAYER) {
+		if (select == 0) {
+			if (player_hand->count == MAX_HAND_SIZE) return;
+			player_hand->hand[player_hand->count] = deck[game_state.deck_loc];
+
+			bjack_Screen_new_card(PLAYER_X + 6*player_hand->count, PLAYER_Y, player_hand->hand[player_hand->count]);
+			bjack_wait(1);
+			ssd1306_UpdateScreen();
+
+			player_hand->count++;
+			game_state.deck_loc++;
+		}
+		if (select == 1) {
+			game_state.seat_turn = BJACK_SEAT_DEALER;
+			bjack_wait(16);
+			return;
+		}
+	}
+
+	if (game_state.seat_turn == BJACK_SEAT_DEALER) {
+		if (select == 0) {
+			if (dealer_hand->count == MAX_HAND_SIZE) return;
+			dealer_hand->hand[dealer_hand->count] = deck[game_state.deck_loc];
+
+			bjack_Screen_new_card(DEALER_X + 6*dealer_hand->count, DEALER_Y, dealer_hand->hand[dealer_hand->count]);
+			bjack_wait(1);
+			ssd1306_UpdateScreen();
+
+			dealer_hand->count++;
+			game_state.deck_loc++;
+		}
+	}
 }
 
 void bjack_home() {
@@ -276,32 +522,41 @@ void bjack_home() {
 	uint8_t select = 0;
 
 	bjack_update_menu(select);
-	ssd1306_UpdateScreen();
 
 	while (loop_c) {
-		__WFI();
-		if (b1_pressed) {
-			b1_pressed = false;
+		// Reset to home screen
+		ssd1306_Fill(Black);
+		ssd1306_DrawBitmap(0, 0, BMP_home_screen, 128, 64, White);
+		bjack_update_menu(select);
+
+		while (!bpressed) {
+			__WFI();
+		}
+		if (!srand_done) {
+			srand(HAL_GetTick());
+			srand_done = true;
+		}
+
+		if (bpressed == 1) {
+			bpressed = 0;
 			if (!(select == 0)) {
 				select--;
 				bjack_update_menu(select);
-				ssd1306_UpdateScreen();
 			}
 		}
-		if (b2_pressed) {
-			b2_pressed = false;
+		if (bpressed == 2) {
+			bpressed = 0;
 			if (!(select == 2)) {
 				select++;
 				bjack_update_menu(select);
-				ssd1306_UpdateScreen();
 			}
 		}
-		if (b3_pressed) {
-			b3_pressed = false;
+		if (bpressed == 3) {
+			bpressed = 0;
 			switch(select) {
 			case 0: bjack_init(); break;
-			case 1: break;
-			case 2: break;
+			case 1: bjack_rules(); break;
+			case 2: bjack_options(); break;
 			}
 		}
 	}
@@ -318,7 +573,163 @@ void bjack_update_menu(uint8_t select) {
 	case 2: ssd1306_FillRectangle(42, 53, 43, 54, White); break;
 	}
 
+	while (!frame_ready) {
+		__WFI();
+	}
+	frame_ready = false;
 	ssd1306_UpdateScreen();
+}
+
+void bjack_update_choice(uint8_t select) {
+	ssd1306_FillRectangle(16, 54, 17, 55, Black);
+	ssd1306_FillRectangle(40, 54, 41, 55, Black);
+	ssd1306_FillRectangle(64, 54, 65, 55, Black);
+	ssd1306_FillRectangle(88, 54, 89, 55, Black);
+
+	switch (select) {
+	case 0: ssd1306_FillRectangle(16, 54, 17, 55, White); break;
+	case 1: ssd1306_FillRectangle(40, 54, 41, 55, White); break;
+	case 2: ssd1306_FillRectangle(64, 54, 65, 55, White); break;
+	case 3: ssd1306_FillRectangle(88, 54, 89, 55, White); break;
+	}
+
+	while (!frame_ready) {
+		__WFI();
+	}
+	frame_ready = false;
+	ssd1306_UpdateScreen();
+}
+
+void bjack_init_deck() {
+	// initialize deck
+	uint8_t index = 0;
+
+	for (CARD_SUIT suit = CARD_SUIT_CLUBS; suit <= CARD_SUIT_SPADES; suit++) {
+		for (CARD_NUM num = CARD_NUM_ACE; num <= CARD_NUM_KING; num++) {
+			deck[index].suit = suit;
+			deck[index].num = num;
+			index++;
+		}
+	}
+}
+
+void bjack_shuffle_deck() {
+	// apply shuffle (fisher-yates method apparently)
+	for (uint8_t i = DECK_SIZE - 1; i > 0; i--) {
+		uint8_t j = rand() % (i + 1);
+
+		BJACK_CARD temp = deck[i];
+		deck[i] = deck[j];
+		deck[j] = temp;
+	}
+}
+
+void bjack_deal_new_hand(BJACK_HAND *player_hand, BJACK_HAND *dealer_hand) {
+	player_hand->hand[0] = deck[0];
+	dealer_hand->hand[0] = deck[1];
+	player_hand->hand[1] = deck[2];
+	dealer_hand->hand[1] = deck[3];
+	player_hand->count += 2;
+	dealer_hand->count += 2;
+	game_state.deck_loc = 4;
+
+	bjack_Screen_new_card(PLAYER_X, PLAYER_Y, player_hand->hand[0]);
+	bjack_wait(4);
+	ssd1306_UpdateScreen();
+	ssd1306_DrawBitmap(DEALER_X, DEALER_Y, BMP_empty_card, 9, 15, White);
+	bjack_wait(4);
+	ssd1306_UpdateScreen();
+	bjack_Screen_new_card(PLAYER_X + 6, PLAYER_Y, player_hand->hand[1]);
+	bjack_wait(4);
+	ssd1306_UpdateScreen();
+	bjack_Screen_new_card(DEALER_X + 6, DEALER_Y, dealer_hand->hand[1]);
+	bjack_wait(4);
+	ssd1306_UpdateScreen();
+}
+
+void bjack_Screen_new_card(uint8_t x, uint8_t y, BJACK_CARD card) {
+	ssd1306_FillRectangle(x, y, x+8, y+14, Black);
+	ssd1306_DrawBitmap(x, y, BMP_empty_card, 9, 15, White);
+	ssd1306_DrawBitmap(x+2, y+2, BMP_card_num[card.num], 3, 5, White);
+	ssd1306_DrawBitmap(x+2, y+8, BMP_card_suit[card.suit], 5, 5, White);
+}
+
+void bjack_wait(uint8_t ticks) {
+	uint8_t counter = 0;
+	while (counter < ticks) {
+		while (!frame_ready) {
+			__WFI();
+		}
+
+		frame_ready = false;
+		counter++;
+	}
+}
+
+BJACK_BLACKJACK bjack_is_blackjack(BJACK_HAND *player_hand, BJACK_HAND *dealer_hand) {
+	uint8_t player_worth = 0;
+	uint8_t dealer_worth = 0;
+
+	player_worth = bjack_determine_worth(*player_hand);
+	dealer_worth = bjack_determine_worth(*dealer_hand);
+
+	if (player_worth == 21) {
+		if (dealer_worth == 21) return BOTH_BLACKJACK;
+		return PLAYER_BLACKJACK;
+	} else if (dealer_worth == 21) return DEALER_BLACKJACK;
+	return NO_BLACKJACK;
+}
+
+uint8_t bjack_count_card_worth(uint8_t cur, BJACK_CARD card) {
+	uint8_t worth;
+
+	switch (card.num) {
+	case 0: worth = 11;
+	case 1: worth = 2;
+	case 2: worth = 3;
+	case 3: worth = 4;
+	case 4: worth = 5;
+	case 5: worth = 6;
+	case 6: worth = 7;
+	case 7: worth = 8;
+	case 8: worth = 9;
+	case 9: ;
+	case 10: ;
+	case 11: ;
+	case 12: worth = 10; break;
+	}
+
+	if (card.num == 0 && cur > 10) {
+		worth = 1;
+	}
+
+	return worth;
+}
+
+void bjack_rules() {
+	ssd1306_Fill(Black);
+	ssd1306_SetCursor(30, 10);
+	ssd1306_WriteString("Rules", Font_7x10, White);
+	bjack_wait(1);
+	ssd1306_UpdateScreen();
+
+	while (bpressed != 4) {
+		__WFI();
+	}
+	bpressed = 0;
+}
+
+void bjack_options() {
+	ssd1306_Fill(Black);
+	ssd1306_SetCursor(30, 10);
+	ssd1306_WriteString("Options", Font_7x10, White);
+	bjack_wait(1);
+	ssd1306_UpdateScreen();
+
+	while (bpressed != 4) {
+		__WFI();
+	}
+	bpressed = 0;
 }
 
 /*
